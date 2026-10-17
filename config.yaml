@@ -1,0 +1,78 @@
+# The seven decisions, as configuration. A number you didn't choose is a number you can't debug.
+decisions:
+  delta_level: 25            # 1. which two strikes (delta, mirrored either side)
+  expiry:                    # 2. which expiry: one rule, every name, every run
+    min_dte: 30
+    max_dte: 60
+    prefer_monthly: true
+  # 3. normalization is fixed by design: map/rankings divide by ATM IV,
+  #    sector aggregates always use raw vol points. Not configurable on purpose.
+  benchmark: SPY             # 4. return benchmark; sector reads need min names
+  min_sector_names: 3
+  agreement_min_pct: 65
+  quality:                   # 5. quality bar: below any of these, chain_ok = false
+    min_strikes_per_side: 8
+    min_leg_open_interest: 25
+    max_delta_gap: 0.10      # if nearest strike lands further than this from target delta
+    ignore_oi_if_missing: true
+    # A two-sided market, or the price is a story. An option with no bid has no
+    # price at all, so its quoted IV is fiction; a spread wider than a third of
+    # the mid leaves the true price uncertain by about a sixth, which is more
+    # than the whole skew signal. Legs failing these are skipped, not fatal, so
+    # the pick walks on to the next strike. Set from what a quote has to look
+    # like to mean anything, not from today's worst chain.
+    require_bid: true
+    max_leg_spread_pct: 0.35
+    # Re-derive every IV from the bid/ask mid instead of trusting the provider's
+    # field, which is struck off the last trade and can be days stale on a quiet
+    # strike. A strike whose mid implies no volatility keeps no IV at all and
+    # drops out. Turn this off for a provider whose IV is already computed from
+    # quotes (Tradier ships ORATS mid_iv and its own greeks).
+    iv_from_mid: true
+  sanity_ceiling: 0.80       # 6. |skew| above this = assume a bad mark (dashboard rejects/labels)
+  history_keep_days: 180     # 7. what you store; Delta reads come from data/history.json
+
+sentence:
+  clearly_from: 0.05
+  heavily_from: 0.15
+  rvol_heavy: 1.5
+  rvol_light: 0.7
+  event_window_days: 35
+
+guards:
+  max_session_skew_move: 0.5 # diff guard: a one-session normalized-skew jump past this
+                             # is usually bad data, not a market move; lands in warnings[]
+  min_session_progress_for_rvol: 0.15
+                             # mid-session RVOL is scaled up to a whole day using a
+                             # U-shaped volume curve. Before this much of the session
+                             # has run, that scaling divides by a small number and
+                             # turns a quiet ten minutes into a dramatic reading, so
+                             # RVOL is reported as unknown instead.
+
+provider: yfinance           # yfinance (dev/demo, delayed, unofficial) | tradier (set TRADIER_TOKEN)
+risk_free_rate: 0.045
+request_pause_sec: 0.4
+
+# Earnings dates: providers are unreliable here; anything listed below wins.
+earnings_overrides: {}
+#  NVDA: 2026-09-08
+
+universe:
+  - {t: NVDA, sector: Semis}
+  - {t: AMD,  sector: Semis}
+  - {t: AVGO, sector: Semis}
+  - {t: MU,   sector: Semis, watch: true}
+  - {t: PLTR, sector: Software}
+  - {t: CRM,  sector: Software}
+  - {t: DDOG, sector: Software}
+  - {t: XOM,  sector: Energy}
+  - {t: OXY,  sector: Energy}
+  - {t: SLB,  sector: Energy}
+  - {t: JPM,  sector: Financials}
+  - {t: GS,   sector: Financials}
+  - {t: SCHW, sector: Financials}
+  - {t: COIN, sector: Financials, watch: true}
+  - {t: DUK,  sector: Utilities}
+  - {t: NEE,  sector: Utilities}
+  - {t: SO,   sector: Utilities}
+  - {t: IONQ, sector: Tech}

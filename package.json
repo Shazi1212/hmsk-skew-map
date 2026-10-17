@@ -1,0 +1,10 @@
+{
+  "name": "skew-map",
+  "private": true,
+  "type": "module",
+  "description": "Optional serverless read proxy (api/) for the Postgres mirror. The dashboard itself is plain static HTML with no build step.",
+  "license": "MIT",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0"
+  }
+}

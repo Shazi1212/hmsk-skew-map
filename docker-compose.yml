@@ -1,0 +1,23 @@
+# Untested: Docker was not available where this was written.
+# One container: serves the dashboard on port 8080 and rebuilds the board
+# every weekday after the US close (yfinance, no API key needed).
+#
+# Local:   docker compose up -d   then open http://localhost:8080
+# Remote:  set SKEWMAP_REPO to this repo's git URL so the image builds
+#          straight from GitHub, e.g. https://github.com/<you>/skew-map.git
+services:
+  skewmap:
+    build:
+      context: ${SKEWMAP_REPO:-.}
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      RUN_AT_UTC: "21:20"          # weekday build time, UTC
+      # DATABASE_URL: ""           # optional Postgres mirror
+      # ALERT_WEBHOOK_URL: ""      # optional quadrant-flip alerts
+    volumes:
+      - skewmap-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  skewmap-data:

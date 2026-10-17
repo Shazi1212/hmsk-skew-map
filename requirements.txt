@@ -1,0 +1,4 @@
+yfinance>=0.2.40
+pyyaml>=6.0
+requests>=2.31
+psycopg2-binary>=2.9

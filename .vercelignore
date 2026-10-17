@@ -1,0 +1,15 @@
+# Deploy only the dashboard and its data; the pipeline never ships to the CDN.
+skewmap/
+tests/
+.github/
+.venv/
+__pycache__/
+requirements.txt
+config.yaml
+CLAUDE.md
+README.md
+.gitignore
+docker/
+Dockerfile
+docker-compose.yml
+LICENSE

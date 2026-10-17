@@ -1,0 +1,10 @@
+__pycache__/
+.claude/
+.DS_Store
+*.pyc
+.venv/
+.pytest_cache/
+.vercel/
+.vercel
+.env*
+node_modules/

@@ -1,0 +1,50 @@
+name: Update skew board
+on:
+  schedule:
+    # Once a day, after the US close (21:20 UTC covers it under both EDT and
+    # EST). GitHub may delay scheduled runs by a few minutes; that is fine for
+    # an end-of-day board.
+    - cron: '20 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Commit data/ after the build'
+        type: boolean
+        default: true
+permissions:
+  contents: write
+
+# Never let two builds race for the same push.
+concurrency:
+  group: skew-board
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt pytest
+      - name: Tests stay green or the board does not update
+        run: python -m pytest tests -q
+      - name: Build board
+        # Both secrets are optional. Leave them unset and the build simply
+        # writes data/ (yfinance needs no key).
+        #   ALERT_WEBHOOK_URL  Slack-style incoming webhook for quadrant flips
+        #   DATABASE_URL       Postgres DSN for the optional mirror (skewmap/store.py)
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m skewmap.fetch --config config.yaml
+      - name: Commit data
+        if: github.event_name == 'schedule' || inputs.commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "board $(date -u +'%F %H:%MZ')" || { echo "no changes"; exit 0; }
+          git pull --rebase --autostash
+          git push

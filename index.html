@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skew Map Workbench</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#11161d;
+    --panel-2:#161d26;
+    --line:#232c38;
+    --line-soft:#1a222d;
+    --text:#e9e4d8;
+    --muted:#8b95a3;
+    --faint:#5b6572;
+    --q-contra:#5aa7ff;
+    --q-chase:#ff9e57;
+    --q-hedge:#f2ce5c;
+    --q-fear:#ff6b66;
+    --ok:#7fd4a5;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono','JetBrains Mono',Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none !important;animation:none !important} }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--q-contra)}
+  main{max-width:1120px;margin:0 auto;padding:0 16px 80px}
+
+  /* ---------- masthead ---------- */
+  header.masthead{
+    max-width:1120px;margin:0 auto;padding:22px 16px 6px;
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;
+  }
+  .brand{
+    font-family:var(--mono);
+    font-size:13px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--text);
+  }
+  .brand b{color:var(--q-hedge);font-weight:700}
+  .headline{width:100%;font-size:clamp(22px,4vw,32px);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  .subline{width:100%;color:var(--muted);font-size:14px;max-width:70ch}
+  .runline{width:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+  .runline .date{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.08em}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);
+  }
+  .badge.sample{border-color:var(--q-hedge);color:var(--q-hedge)}
+  .badge.mem{border-color:var(--line)}
+
+  /* ---------- generic panel ---------- */
+  section.panel{
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:12px;
+    padding:18px 18px 16px;
+    margin-top:16px;
+  }
+  .panel-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-bottom:12px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);
+  }
+  .panel-title{font-size:17px;font-weight:750;letter-spacing:-.01em}
+  .panel-note{color:var(--muted);font-size:13px;max-width:78ch}
+  .spacer{flex:1}
+
+  /* ---------- top strip ---------- */
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+  @media(max-width:820px){.strip{grid-template-columns:repeat(2,1fr)}}
+  .tile{
+    background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:14px 14px 12px;
+  }
+  .tile .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .tile .v{font-family:var(--mono);font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
+  .tile .s{color:var(--muted);font-size:12.5px;margin-top:3px}
+
+  /* ---------- written read (signature: teletype verdict lines) ---------- */
+  .readlines{display:flex;flex-direction:column;gap:9px}
+  .readline{
+    font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--text);
+    border-left:3px solid var(--line);padding:2px 0 2px 12px;
+  }
+  .readline.contra{border-color:var(--q-contra)}
+  .readline.chase{border-color:var(--q-chase)}
+  .readline.hedge{border-color:var(--q-hedge)}
+  .readline.fear{border-color:var(--q-fear)}
+  .readline.quiet{color:var(--muted)}
+  .readline .tick{color:var(--q-hedge);font-weight:700}
+
+  /* ---------- chips ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chip{
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    padding:5px 12px;border-radius:999px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .chip:hover{border-color:var(--muted);color:var(--text)}
+  .chip.on{border-color:var(--text);color:var(--text);background:var(--panel-2)}
+  .chip:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+    outline:2px solid var(--q-contra);outline-offset:2px;
+  }
+
+  /* ---------- map ---------- */
+  .map-wrap{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:10px;padding:6px}
+  svg.map{display:block;width:100%;height:auto}
+  .map-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:10px 2px 0;color:var(--muted);font-size:13px}
+  .map-controls label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .dot.hollow{background:transparent;border:1.6px dashed var(--faint)}
+  .dot.watch{background:var(--panel-2);border:2.5px solid var(--q-chase)}
+
+  /* detail card */
+  .detail{
+    margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);
+    padding:14px;display:none;
+  }
+  .detail.on{display:block}
+  .detail .top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-bottom:8px}
+  .detail .tkr{font-family:var(--mono);font-size:18px;font-weight:800;letter-spacing:.04em}
+  .detail .sentence{font-family:var(--mono);font-size:13.5px;line-height:1.6;border-left:3px solid var(--line);padding-left:12px}
+  .detail .stats{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .detail .stats b{color:var(--text);font-weight:600}
+
+  .qchip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 10px;border-radius:999px;border:1px solid;
+  }
+  .qchip.CONTRA{color:var(--q-contra);border-color:var(--q-contra)}
+  .qchip.CHASE{color:var(--q-chase);border-color:var(--q-chase)}
+  .qchip.HEDGE{color:var(--q-hedge);border-color:var(--q-hedge)}
+  .qchip.FEAR{color:var(--q-fear);border-color:var(--q-fear)}
+  .qchip.NA{color:var(--faint);border-color:var(--line)}
+
+  .mini-badge{
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)
+  }
+  .mini-badge.event{color:var(--q-hedge);border-color:var(--q-hedge)}
+  .mini-badge.thin{color:var(--faint);border-style:dashed}
+  .mini-badge.reject{color:var(--q-fear);border-color:var(--q-fear)}
+  .mini-badge.watch{color:var(--q-chase);border-color:var(--q-chase)}
+
+  /* ---------- quadrant explainer ---------- */
+  .quads{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:900px){.quads{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.quads{grid-template-columns:1fr}}
+  .quad{
+    border:1px solid var(--line-soft);border-radius:10px;padding:13px;background:var(--panel-2);
+    border-top:3px solid var(--line);
+  }
+  .quad.CONTRA{border-top-color:var(--q-contra)}
+  .quad.CHASE{border-top-color:var(--q-chase)}
+  .quad.HEDGE{border-top-color:var(--q-hedge)}
+  .quad.FEAR{border-top-color:var(--q-fear)}
+  .quad h4{font-size:14px;font-weight:750;margin-bottom:6px;letter-spacing:.02em}
+  .quad .looks{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:7px;line-height:1.5}
+  .quad .tells{font-size:13px;color:var(--text);margin-bottom:8px;line-height:1.5}
+  .quad .act{font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;color:var(--muted)}
+  .quad .act b{color:var(--text)}
+
+  /* ---------- shortlist ---------- */
+  .slist{display:flex;flex-direction:column;gap:8px}
+  .srow{
+    display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;
+    border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;background:var(--panel-2);
+    cursor:pointer;
+  }
+  .srow:hover{border-color:var(--line)}
+  .srow .rank{font-family:var(--mono);color:var(--faint);font-size:12px;width:20px}
+  .srow .tkr{font-family:var(--mono);font-weight:800;font-size:15px;letter-spacing:.04em;width:64px}
+  .srow .verdict{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+  .srow .verdict.CONTRA{color:var(--q-contra)}
+  .srow .verdict.CHASE{color:var(--q-chase)}
+  .srow .verdict.HEDGE{color:var(--q-hedge)}
+  .srow .verdict.FEAR{color:var(--q-fear)}
+  .srow .line{flex:1 1 320px;color:var(--muted);font-size:12.5px;font-family:var(--mono);line-height:1.5}
+  .srow .delta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .foot-rule{margin-top:12px;color:var(--faint);font-size:12.5px;font-family:var(--mono)}
+
+  /* ---------- sector read ---------- */
+  .secrows{display:flex;flex-direction:column;gap:10px}
+  .secrow{display:grid;grid-template-columns:110px 1fr 150px;gap:12px;align-items:center}
+  @media(max-width:640px){.secrow{grid-template-columns:90px 1fr;gap:8px}.secrow .agree{grid-column:2}}
+  .secrow .name{font-family:var(--mono);font-size:13px}
+  .barlane{position:relative;height:20px;background:var(--panel-2);border:1px solid var(--line-soft);border-radius:5px;overflow:hidden}
+  .barlane .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line)}
+  .bar{position:absolute;top:3px;bottom:3px;border-radius:3px}
+  .bar.put{background:var(--q-fear);opacity:.75}
+  .bar.call{background:var(--q-contra);opacity:.75}
+  .secrow .agree{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+  .caveat{color:var(--q-hedge)}
+  .sec-note{color:var(--faint);font-size:12.5px;margin-top:12px;font-family:var(--mono);line-height:1.6}
+
+  /* ---------- honesty strip ---------- */
+  .honest{display:flex;flex-direction:column;gap:8px}
+  .honest .row{font-family:var(--mono);font-size:12.5px;line-height:1.6;padding-left:12px;border-left:3px solid var(--line)}
+  .honest .row.reject{border-color:var(--q-fear);color:var(--text)}
+  .honest .row.thin{border-color:var(--faint);color:var(--muted)}
+  .honest .row .t{font-weight:800}
+  .honest .none{color:var(--faint);font-family:var(--mono);font-size:12.5px}
+
+  /* ---------- table ---------- */
+  .table-scroll{overflow-x:auto;border:1px solid var(--line-soft);border-radius:10px;background:var(--panel-2)}
+  table{border-collapse:collapse;width:100%;min-width:1040px;font-size:13px}
+  thead th{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+    position:sticky;top:0;background:var(--panel-2);z-index:1;
+  }
+  tbody td{padding:5px 8px;border-bottom:1px solid var(--line-soft);white-space:nowrap;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.sel td{background:rgba(90,167,255,.06)}
+  tbody tr.dim{opacity:.35}
+  td.num,th.num{text-align:right}
+  td input[type=number],td input[type=text],td input[type=date]{
+    background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--text);
+    font-family:var(--mono);font-size:12.5px;padding:4px 6px;
+  }
+  td input[type=number]{width:70px;text-align:right}
+  td input.tkr-in{width:70px;text-transform:uppercase;font-weight:700}
+  td input.sec-in{width:96px}
+  td input[type=date]{width:132px;color-scheme:dark}
+  td input[type=checkbox]{accent-color:var(--q-contra);width:15px;height:15px}
+  .comp{font-family:var(--mono);font-size:12.5px}
+  .comp.pos{color:var(--q-fear)}
+  .comp.neg{color:var(--q-contra)}
+  .comp.mut{color:var(--muted)}
+  .starbtn,.delbtn{
+    background:transparent;border:none;cursor:pointer;font-size:15px;line-height:1;padding:3px 5px;border-radius:6px;
+  }
+  .starbtn{color:var(--faint)} .starbtn.on{color:var(--q-chase)}
+  .starbtn:hover{color:var(--q-chase)}
+  .delbtn{color:var(--faint);font-family:var(--mono)} .delbtn:hover{color:var(--q-fear)}
+  .table-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+
+  /* ---------- buttons ---------- */
+  button.btn{
+    font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px;cursor:pointer;
+  }
+  button.btn:hover{border-color:var(--muted)}
+  button.btn.primary{border-color:var(--q-hedge);color:var(--q-hedge)}
+  button.btn.primary:hover{background:rgba(242,206,92,.08)}
+  button.btn.danger{color:var(--q-fear);border-color:var(--line)}
+  button.btn.danger:hover{border-color:var(--q-fear)}
+
+  /* ---------- settings ---------- */
+  details.settings{margin-top:16px;border:1px solid var(--line-soft);border-radius:12px;background:var(--panel)}
+  details.settings>summary{
+    list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  }
+  details.settings>summary::-webkit-details-marker{display:none}
+  details.settings>summary .panel-title::before{content:'▸ ';color:var(--faint)}
+  details.settings[open]>summary .panel-title::before{content:'▾ '}
+  .set-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:2px 18px 18px}
+  @media(max-width:760px){.set-grid{grid-template-columns:1fr}}
+  .set{border:1px solid var(--line-soft);border-radius:10px;padding:12px;background:var(--panel-2)}
+  .set .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--q-hedge);margin-bottom:4px}
+  .set h5{font-size:13.5px;font-weight:700;margin-bottom:6px}
+  .set p{color:var(--muted);font-size:12.5px;line-height:1.55;margin-bottom:8px}
+  .set .ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+  .set input[type=number],.set input[type=text],.set select{
+    background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--text);
+    font-family:var(--mono);font-size:12.5px;padding:5px 8px;
+  }
+  .set input[type=text]{width:100%}
+  .set input[type=number]{width:78px;text-align:right}
+  .set .locked{font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+  /* ---------- snapshots ---------- */
+  .snaps{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .snap{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12.5px;color:var(--muted);
+    border:1px solid var(--line-soft);border-radius:8px;padding:7px 12px;background:var(--panel-2)}
+  .snap b{color:var(--text)}
+  .snap .x{margin-left:auto}
+
+  /* ---------- misc ---------- */
+  .loop{color:var(--muted);font-size:13.5px;line-height:1.7;max-width:80ch}
+  .loop b{color:var(--text)}
+  footer.colophon{max-width:1120px;margin:28px auto 0;padding:18px 16px 40px;border-top:1px solid var(--line-soft);
+    color:var(--faint);font-size:12.5px;line-height:1.7}
+  footer.colophon b{color:var(--muted)}
+
+  #toast{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(8px);
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:12.5px;padding:9px 16px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:60;
+    max-width:90vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .overlay{position:fixed;inset:0;background:rgba(4,7,10,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .overlay.on{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:640px;width:100%;padding:18px}
+  .modal h3{font-size:16px;margin-bottom:8px}
+  .modal p{color:var(--muted);font-size:13px;margin-bottom:10px;line-height:1.55}
+  .modal code{font-family:var(--mono);font-size:11.5px;color:var(--q-hedge);word-break:break-all}
+  .modal textarea{
+    width:100%;min-height:170px;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);font-family:var(--mono);font-size:12px;padding:10px;resize:vertical;margin:10px 0;
+  }
+  .modal .row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+  .badge.live{border-color:var(--ok);color:var(--ok)}
+  .live #btnImport,.live #btnSnap,.live #btnReset,.live #btnAdd,.live #spyIn,.live .delbtn,.live #snaps .x{display:none}
+  .live .table-actions .panel-note{display:none}
+  #boot{padding:60px 16px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:13px;letter-spacing:.1em}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">SKEW <b>MAP</b> · WORKBENCH</div>
+  <span id="mastBadges"></span>
+  <div class="headline">What are people paying to be positioned?</div>
+  <div class="subline">The weekend version: 15 to 25 names, three IV readings each, one rule set held forever. Positioning is the map. It is not the trade.</div>
+  <div class="runline">
+    <span class="date" id="runDate"></span>
+    <span class="date" id="liveStamp"></span>
+    <span class="spacer"></span>
+    <button class="btn" id="btnExport">Export CSV</button>
+    <button class="btn" id="btnImport">Paste data</button>
+    <button class="btn primary" id="btnSnap">Save this week's snapshot</button>
+  </div>
+</header>
+
+<div id="boot">LOADING THE BOARD…</div>
+
+<main id="app" class="hidden">
+
+  <div class="strip" id="strip"></div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">The written read</div>
+        <div class="panel-title">Same rules every day, so a quiet day reads quiet</div>
+      </div>
+    </div>
+    <div class="readlines" id="readlines"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">The map</div>
+        <div class="panel-title">Skew against one-month return</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note" id="mapAnchor"></div>
+    </div>
+    <div class="chips" id="sectorChips"></div>
+    <div class="map-wrap"><svg class="map" id="mapSvg" role="img" aria-label="Scatter of skew against one-month return"></svg></div>
+    <div class="map-controls">
+      <label><input type="checkbox" id="ctlMedian"> Crosshair at list median instead of zero</label>
+      <label><input type="checkbox" id="ctlRaw"> Plot raw vol points on the y-axis</label>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--q-contra)"></span> Contrarian bid</span>
+      <span><span class="dot" style="background:var(--q-chase)"></span> Chase</span>
+      <span><span class="dot" style="background:var(--q-hedge)"></span> Hedged rally</span>
+      <span><span class="dot" style="background:var(--q-fear)"></span> Fear</span>
+      <span><span class="dot watch"></span> Watchlist</span>
+      <span><span class="dot hollow"></span> Thin chain: noise, never acted on</span>
+    </div>
+    <div class="detail" id="detail"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">The card</div>
+        <div class="panel-title">Four verdicts, decided in advance</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">Written down once, so nothing gets re-argued at 4pm on a red day.</div>
+    </div>
+    <div class="quads" id="quads"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Ranked</div>
+        <div class="panel-title">Most interesting today</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">Disagreement ranks first. Agreement teaches you nothing a chart didn't.</div>
+    </div>
+    <div class="slist" id="shortlist"></div>
+    <div class="foot-rule">A shortlist is not a trade. The level, the invalidation and the timing come off the chart, and that is a separate skill.</div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Sectors</div>
+        <div class="panel-title">Fear premium by group, in raw vol points</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">Raw points on purpose: dividing by ATM IV flatters low-vol sectors every single day.</div>
+    </div>
+    <div class="secrows" id="sectors"></div>
+    <div class="sec-note" id="secNote"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">Named, not hidden</div>
+        <div class="panel-title">What the board refused to believe</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">A system that hides what it couldn't cover is hiding the size of its own blind spot.</div>
+    </div>
+    <div class="honest" id="honest"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">The sheet</div>
+        <div class="panel-title">Your universe</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note" id="spyNote"></div>
+    </div>
+    <div class="table-scroll">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th title="Watchlist">★</th>
+            <th>Ticker</th>
+            <th>Sector</th>
+            <th class="num" title="At-the-money implied volatility, your one expiry rule">ATM&nbsp;IV</th>
+            <th class="num" title="Put IV at your chosen delta">Put&nbsp;IV</th>
+            <th class="num" title="Call IV at the mirror delta">Call&nbsp;IV</th>
+            <th class="num" title="(Put - Call) / ATM">Skew</th>
+            <th class="num" title="Put - Call, un-normalized. Survives cross-sector comparison.">Pts</th>
+            <th class="num" title="Stock's one-month % return">1M&nbsp;%</th>
+            <th class="num" title="1M return minus SPY's">vs&nbsp;SPY</th>
+            <th class="num" title="Today's volume over average">RVOL</th>
+            <th title="Next confirmed earnings date">Earnings</th>
+            <th title="Chain deep enough to trust?">Chain</th>
+            <th class="num" title="Skew now minus last saved snapshot">Δ&nbsp;wk</th>
+            <th>Quadrant</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-actions">
+      <button class="btn" id="btnAdd">+ Add a name</button>
+      <span class="panel-note">SPY 1M return:&nbsp;</span>
+      <input type="number" step="0.1" id="spyIn" style="width:80px;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12.5px;padding:5px 8px;text-align:right">
+      <span class="panel-note">%</span>
+      <span class="spacer"></span>
+      <button class="btn danger" id="btnReset">Reset everything</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">The loop</div>
+        <div class="panel-title">Fifteen to twenty minutes, once a week</div>
+      </div>
+    </div>
+    <p class="loop">
+      Open your broker's chain on <b>one expiry rule</b> for every name, no exceptions. Pull <b>three numbers</b> per name: ATM IV, put IV at your delta, call IV at the mirror delta. Add the <b>1M return</b> and <b>RVOL</b> from any free screener, and the next <b>earnings date</b> so an event never masquerades as sentiment. Then press <b>Save this week's snapshot</b>: the level is structural, the change is the signal, and the change only exists if last week was saved. Six weeks in, the Δ column becomes the most honest thing on this page.
+    </p>
+  </section>
+
+  <details class="settings" id="settingsBox">
+    <summary>
+      <div>
+        <div class="eyebrow">Seven decisions</div>
+        <div class="panel-title">The dials, and why each one exists</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">A number you didn't choose is a number you can't debug.</div>
+    </summary>
+    <div class="set-grid" id="setGrid"></div>
+  </details>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">History</div>
+        <div class="panel-title">Saved snapshots</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="panel-note">The step everyone skips, and the one that makes the whole thing work.</div>
+    </div>
+    <div class="snaps" id="snaps"></div>
+  </section>
+
+</main>
+
+<footer class="colophon">
+  <b>A positioning layer, not a signal.</b> This board says where to look; it is structurally incapable of saying when. Skew is what people are paying to be positioned, not a prediction. <b>Educational tool only. Not investment advice.</b> Nothing here is a recommendation to buy, sell or hold any security or option. The data comes from free, delayed, unofficial sources and may be delayed, incomplete or simply wrong. Check every number against your own chain before you believe it, and make your own decisions at your own risk.
+</footer>
+
+<div id="toast" role="status"></div>
+
+<div class="overlay" id="importOverlay">
+  <div class="modal">
+    <h3>Paste your universe</h3>
+    <p>One name per line, comma or tab separated, in this order:</p>
+    <p><code>Ticker, Sector, ATM IV, Put IV, Call IV, 1M %, RVOL, Earnings (YYYY-MM-DD or blank), Chain OK (Y/N), Watchlist (Y/N)</code></p>
+    <textarea id="importText" spellcheck="false" placeholder="MU, Semis, 47, 45.2, 47.9, -6.8, 1.6, , Y, Y"></textarea>
+    <div class="row">
+      <button class="btn" id="importCancel">Cancel</button>
+      <button class="btn primary" id="importGo">Replace the list</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ---------------- helpers ---------------- */
+const $=(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>Array.from(el.querySelectorAll(s));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=parseFloat(v);return Number.isFinite(n)?n:NaN;};
+const fx=(v,d)=>Number.isFinite(v)?v.toFixed(d):'·';
+const sgn=(v,d)=>Number.isFinite(v)?(v>0?'+':'')+v.toFixed(d):'·';
+const fxE=v=>Number.isFinite(v)?String(v):'';
+const cls=v=>!Number.isFinite(v)?'mut':v>=0?'pos':'neg';
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const fmtDay=iso=>{const d=new Date(iso+'T00:00:00');return isNaN(d)?String(iso):d.toLocaleDateString(undefined,{month:'short',day:'numeric'});};
+const daysTo=iso=>{if(!iso)return NaN;const t=new Date();t.setHours(0,0,0,0);const d=new Date(iso+'T00:00:00');return Math.round((d-t)/864e5);};
+const median=a=>{if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;};
+const fmtStamp=iso=>{if(!iso)return '\u00b7';const d=new Date(iso);return isNaN(d)?String(iso):d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});};
+
+/* ---------------- quadrant meta ---------------- */
+const QUAD={
+ CONTRA:{name:'Contrarian bid',verdict:'Fresh look',act:"Watchlist, then chart. Price and positioning disagree, and that is the only box where you learn something a chart could not tell you."},
+ CHASE:{name:'Chase',verdict:'Crowded',act:"Crowded. Late, not bad. The map's job here is to stop you feeling clever about it."},
+ HEDGE:{name:'Hedged rally',verdict:'Caution flag',act:"Tighten stops on anything already held here. The rally is real; the trust in it is not."},
+ FEAR:{name:'Fear',verdict:'Leave it',act:"Leave it. Cheap and falling while protection gets pricier is not a bargain yet."}
+};
+
+/* ---------------- state ---------------- */
+const DEF={deltaLevel:25,expiryRule:'Nearest monthly, 30-60 days out, every name, no exceptions',
+ universeNote:'Benchmark sectors on a broad neutral list (a sector ETF holdings page), never on your own picks',
+ crosshair:'zero',yAxisRaw:false,sanityCeiling:0.8,slightCut:0.05,heavyCut:0.15,
+ rvolHeavy:1.5,rvolLight:0.7,agreeMin:65,minSector:3,eventWindow:35};
+const state={settings:{...DEF},spy1m:2.4,rows:[],snapshots:[],sampleMode:true,sectorFilter:null,selected:null};
+let LIVE=false;let LIVEMETA={asOf:'',provider:'',session:'',failures:[],warnings:[]};
+let historySource='';  // 'api/history' (database, full depth) or 'data/history.json' (trimmed)
+let latestSource='';   // 'api/latest' (database, intraday) or 'data/latest.json' (last close)
+let uid=0;const nid=()=>'r'+(++uid);
+const R=(t,sector,atm,put,call,ret,rvol,earn,chain,watch)=>({id:nid(),t,sector,atm,put,call,ret,rvol,earn:earn||'',chain:!!chain,watch:!!watch});
+function addBlank(){state.rows.push(R('','','','','','','','',true,false));}
+
+/* ---------------- derivation ---------------- */
+function derive(r){
+ const s=state.settings;
+ const atm=num(r.atm),put=num(r.put),call=num(r.call),ret=num(r.ret),rvol=num(r.rvol);
+ const pts=(Number.isFinite(put)&&Number.isFinite(call))?put-call:NaN;
+ const skew=(Number.isFinite(pts)&&atm>0)?pts/atm:NaN;
+ const vs=Number.isFinite(ret)?ret-state.spy1m:NaN;
+ const rejected=Number.isFinite(skew)&&Math.abs(skew)>s.sanityCeiling;
+ const thin=!r.chain;
+ const usable=!thin&&!rejected&&Number.isFinite(skew)&&Number.isFinite(ret);
+ const dE=daysTo(r.earn);
+ const event=Number.isFinite(dE)&&dE>=0&&dE<=s.eventWindow;
+ return {atm,put,call,ret,rvol,pts,skew,vs,rejected,thin,usable,event,dE};
+}
+const all=()=>state.rows.map(r=>({r,d:derive(r)}));
+function crossY(list){if(state.settings.crosshair!=='median')return 0;
+ const m=median(list.filter(x=>x.d.usable).map(x=>x.d.skew));return Number.isFinite(m)?m:0;}
+function quadOf(d,cy){if(!d.usable)return null;const up=d.ret>=0,puts=d.skew>=cy;
+ return up?(puts?'HEDGE':'CHASE'):(puts?'FEAR':'CONTRA');}
+function peersOf(list,x){return list.filter(y=>y.d.usable&&y.r.sector===x.r.sector);}
+function rankTxt(list,x){
+ const others=peersOf(list,x).filter(y=>y!==x);
+ if(!others.length)return ', with no usable sector peer to rank against';
+ if(x.d.skew>=0){const p=Math.round(100*others.filter(y=>y.d.skew<x.d.skew).length/others.length);
+  return `, more fear premium than ${p}% of its ${esc(x.r.sector||'sector')} peers`;}
+ const p=Math.round(100*others.filter(y=>y.d.skew>x.d.skew).length/others.length);
+ return `, more upside bid than ${p}% of its ${esc(x.r.sector||'sector')} peers`;
+}
+const magWord=v=>{const m=Math.abs(v),s=state.settings;return m<s.slightCut?'slightly':m<s.heavyCut?'clearly':'heavily';};
+const volWord=v=>{const s=state.settings;return !Number.isFinite(v)?'unknown':v>=s.rvolHeavy?'heavy':v<=s.rvolLight?'light':'normal';};
+function sentence(list,x,cy){
+ const {r,d}=x,t=esc(r.t||'?');
+ if(d.thin)return `${t}: thin chain. A handful of strikes and tiny open interest make every number here noise${Number.isFinite(d.skew)?` (skew prints ${sgn(d.skew,3)}, and that means nothing)`:''}. Shown for completeness, never acted on.`;
+ if(d.rejected)return `${t}: rejected. Skew prints ${sgn(d.skew,3)}, past the sanity ceiling of ${state.settings.sanityCeiling.toFixed(2)}. One bad mark on one leg can invert an entire name; re-pull the chain before believing anything here.`;
+ if(!d.usable)return `${t}: incomplete row. Fill ATM, put and call IV plus the 1M return to classify it.`;
+ const q=QUAD[quadOf(d,cy)];
+ const side=d.skew>=0?'puts':'calls';
+ const dir=d.ret>=0?'up':'down';
+ let s=`${t}: traders are paying ${magWord(d.skew)} more for ${side}${rankTxt(list,x)}. The stock is ${dir} ${Math.abs(d.ret).toFixed(1)}% on the month (${sgn(d.vs,1)}% vs SPY), on ${volWord(d.rvol)} volume${Number.isFinite(d.rvol)?` (${d.rvol.toFixed(1)}x${r.rvolPartial?', projected from a session still running':''})`:''}. Quadrant: ${q.name.toUpperCase()}${state.settings.crosshair==='median'?' (relative to the list median)':''}. ${q.act}`;
+ if(d.event)s+=` Earnings ${fmtDay(r.earn)} sits inside the expiry window: a chunk of this is event premium with a date on it, not sentiment.`;
+ return s;
+}
+function sectorStats(list){
+ const s=state.settings,by={};
+ for(const x of list){if(!x.r.sector)continue;(by[x.r.sector]??={all:0,us:[]});by[x.r.sector].all++;if(x.d.usable)by[x.r.sector].us.push(x);}
+ const rows=[],small=[];
+ for(const [sector,g] of Object.entries(by)){
+  if(g.us.length>=s.minSector){
+   const avg=g.us.reduce((a,x)=>a+x.d.pts,0)/g.us.length;
+   const putN=g.us.filter(x=>x.d.skew>=0).length;
+   const maj=Math.max(putN,g.us.length-putN);
+   rows.push({sector,n:g.us.length,avg,lean:putN*2>=g.us.length?'put':'call',agree:Math.round(100*maj/g.us.length)});
+  }else small.push({sector,n:g.us.length});
+ }
+ rows.sort((a,b)=>b.avg-a.avg);
+ return {rows,small};
+}
+const latestSnap=()=>state.snapshots[0]||null;
+function prevSkew(t){const s=latestSnap();if(!s||!t)return NaN;const f=(s.data||[]).find(x=>x.t===t);return f?+f.s:NaN;}
+
+/* ---------------- sample board ---------------- */
+function seedSample(){
+ uid=0;
+ const off=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);};
+ state.settings={...DEF};state.spy1m=2.4;state.sampleMode=true;state.sectorFilter=null;
+ state.rows=[
+  R('NVDA','Semis',38,41.5,36.8,8.2,1.3,off(9),true,false),
+  R('AMD','Semis',44,46.0,43.1,12.5,1.8,'',true,false),
+  R('AVGO','Semis',33,35.2,32.0,9.8,1.1,'',true,false),
+  R('MU','Semis',47,45.2,47.9,-6.8,1.6,off(40),true,true),
+  R('PLTR','Software',52,50.5,53.2,15.4,2.1,'',true,false),
+  R('CRM','Software',31,33.0,30.2,-4.2,1.0,off(5),true,false),
+  R('DDOG','Software',45,44.0,45.8,-9.5,1.1,'',true,false),
+  R('XOM','Energy',22,24.0,21.1,-3.5,0.8,'',true,false),
+  R('OXY','Energy',29,31.5,27.6,-7.9,1.4,'',true,false),
+  R('SLB','Energy',28,29.0,27.5,-1.2,0.7,'',true,false),
+  R('JPM','Financials',19,20.4,18.3,4.6,1.0,'',true,false),
+  R('GS','Financials',23,22.4,23.6,6.9,1.2,'',true,false),
+  R('SCHW','Financials',25,26.1,24.4,1.8,0.6,'',true,false),
+  R('COIN','Financials',62,58.5,63.4,-11.6,1.9,'',true,true),
+  R('DUK','Utilities',15,8.0,29.5,1.4,0.9,'',true,false),
+  R('NEE','Utilities',21,22.3,20.1,-2.1,0.9,'',true,false),
+  R('SO','Utilities',16,17.1,15.9,0.8,0.7,'',true,false),
+  R('IONQ','Tech',78,71.0,82.0,-14.2,2.4,'',false,false)
+ ];
+ state.selected='MU';
+ const special={MU:0.010,NVDA:0.080,COIN:-0.020,DUK:0.200};
+ const data=state.rows.map(r=>{
+  const d=derive(r);if(!Number.isFinite(d.skew))return null;
+  const prev=(r.t in special)?special[r.t]:+((d.skew-0.010*Math.sign(d.skew||1))).toFixed(3);
+  const atm=num(r.atm);
+  return {t:r.t,s:prev,p:Number.isFinite(atm)?+(prev*atm).toFixed(2):0};
+ }).filter(Boolean);
+ state.snapshots=[{date:off(-7),note:'sample',data}];
+}
+
+/* ---------------- storage ---------------- */
+const KEY='skewmap-v1';
+const storageOK=typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function';
+async function loadState(){if(!storageOK)return null;
+ try{const r=await window.storage.get(KEY);if(r&&r.value)return JSON.parse(r.value);}catch(e){}
+ return null;}
+let saveT=null;
+function markDirty(){if(LIVE)return;if(!storageOK)return;clearTimeout(saveT);
+ saveT=setTimeout(async()=>{try{await window.storage.set(KEY,JSON.stringify({v:1,settings:state.settings,spy1m:state.spy1m,rows:state.rows,snapshots:state.snapshots,sampleMode:state.sampleMode}));}catch(e){console.error('save failed',e);}},900);}
+function hydrate(sv){
+ uid=0;
+ state.settings={...DEF,...(sv.settings||{})};
+ state.spy1m=Number.isFinite(+sv.spy1m)?+sv.spy1m:2.4;
+ state.rows=(sv.rows||[]).map(r=>({id:nid(),t:String(r.t||'').toUpperCase(),sector:String(r.sector||''),atm:r.atm??'',put:r.put??'',call:r.call??'',ret:r.ret??'',rvol:r.rvol??'',earn:r.earn||'',chain:r.chain!==false,watch:!!r.watch}));
+ state.snapshots=Array.isArray(sv.snapshots)?sv.snapshots:[];
+ state.snapshots.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ state.sampleMode=!!sv.sampleMode;
+}
+let toastT=null;
+function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2800);}
+
+/* ---------------- renders ---------------- */
+function renderBadges(){
+ let h='';
+ if(LIVE)h+=`<span class="badge live" title="Fed by the data pipeline">LIVE · ${esc(LIVEMETA.provider||'pipeline')}</span>`;
+ else if(state.sampleMode)h+=`<button class="badge sample" id="clearSample" style="background:transparent;cursor:pointer" title="Clear the sample board and start with your own names">Sample data · tap to clear</button>`;
+ // Only warn about lost history in manual mode. In live mode the pipeline banks
+ // every session in data/history.json, so browser storage is not the record.
+ if(!storageOK&&!LIVE)h+=`<span class="badge mem" title="This view cannot save between sessions">No saved history in this view · export CSV to keep it</span>`;
+ $('#mastBadges').innerHTML=h;
+ const b=$('#clearSample');
+ if(b)b.addEventListener('click',()=>{state.rows=[];state.snapshots=[];state.sampleMode=false;state.selected=null;state.sectorFilter=null;addBlank();markDirty();renderSettings();renderAll();toast('Sample cleared. Add your names below.');});
+}
+function renderMeta(){
+ $('#runDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+ const ls=$('#liveStamp');
+ if(ls)ls.textContent=LIVE?`session ${LIVEMETA.session||'\u00b7'} \u00b7 as of ${fmtStamp(LIVEMETA.asOf)} \u00b7 ${latestSource==='api/latest'?'live from the database':'last committed close'} \u00b7 auto-refreshes`:'';
+ $('#mapAnchor').textContent=`${state.settings.deltaLevel}Δ strikes · one expiry rule · 1M horizon · crosshair at ${state.settings.crosshair}`;
+ $('#spyNote').textContent='vs SPY uses the SPY 1M return below; everything looks strong in a strong month.';
+ $('#ctlMedian').checked=state.settings.crosshair==='median';
+ $('#ctlRaw').checked=!!state.settings.yAxisRaw;
+}
+function renderStrip(){
+ const list=all();
+ const usable=list.filter(x=>x.d.usable);
+ const thin=list.filter(x=>x.d.thin&&x.r.t).length,rej=list.filter(x=>x.d.rejected&&!x.d.thin).length;
+ const puts=usable.filter(x=>x.d.skew>=0).length;
+ const med=median(usable.map(x=>x.d.skew));
+ const ss=sectorStats(list);const lead=ss.rows[0]||null;
+ const prev=latestSnap();let mv=null;
+ if(prev)for(const x of usable){const p=prevSkew(x.r.t);if(Number.isFinite(p)){const dd=x.d.skew-p;if(!mv||Math.abs(dd)>Math.abs(mv.d))mv={t:x.r.t,d:dd};}}
+ const tile=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+ $('#strip').innerHTML=
+  tile('Universe',`${state.rows.filter(r=>r.t).length}<span style="color:var(--faint)"> · ${usable.length} usable</span>`,`${thin} thin · ${rej} rejected · named below, not hidden`)+
+  tile('Board lean',usable.length?`${puts}/${usable.length} put-side`:'·',usable.length?`median skew ${sgn(med,3)}`:'enter names to read the board')+
+  tile('Most hedged sector',lead?esc(lead.sector):'·',lead?`${sgn(lead.avg,1)} vol pts · ${lead.agree}% agree`:`needs ${state.settings.minSector}+ usable names in one sector`)+
+  tile('Biggest 1-wk shift',mv?`${esc(mv.t)} ${sgn(mv.d,3)}`:'·',prev?(mv?`vs ${fmtDay(prev.date)} snapshot`:'no ticker overlap with last snapshot'):(LIVE?'unlocks after the next pipeline run':'save a snapshot to unlock Δ'));
+}
+function renderRead(){
+ const list=all(),cy=crossY(list);
+ const usable=list.filter(x=>x.d.usable);
+ const lines=[];
+ if(!usable.length){lines.push({c:'quiet',h:'Enter a universe below (or paste one) and the read writes itself, same rules every day.'});}
+ else{
+  const puts=usable.filter(x=>x.d.skew>=0).length,n=usable.length;
+  const med=median(usable.map(x=>x.d.skew));const share=puts/n;
+  const tail=share>=0.6?'Protection as the resting state is normal for equities; that part is structure, not news.':share<=0.4?'Upside this broadly bid is rare enough to be its own headline.':'A split board: read names, not the average.';
+  lines.push({c:'',h:`Board lean: ${puts} of ${n} usable names carry put-side skew; median ${sgn(med,3)}. ${tail}`});
+  const ss=sectorStats(list);const lead=ss.rows[0];
+  if(lead){let h=`Most hedged: ${esc(lead.sector)}, ${sgn(lead.avg,1)} vol pts of ${lead.avg>=0?'fear':'upside'} premium on average, with ${lead.agree}% of its names leaning together`;
+   h+=lead.agree<state.settings.agreeMin?`. Below the ${state.settings.agreeMin}% agreement line, so it does not count as a sector move; something is dragging the average.`:'.';
+   lines.push({c:'fear',h});}
+  const hed=usable.filter(x=>quadOf(x.d,cy)==='HEDGE').sort((a,b)=>b.d.skew-a.d.skew);
+  const cf=hed.find(x=>!x.d.event);
+  if(cf){lines.push({c:'hedge',h:`Caution flag: <span class="tick">${esc(cf.r.t)}</span> is up ${Math.abs(cf.d.ret).toFixed(1)}% on the month while the put side stays ${magWord(cf.d.skew)} bid. A stock rising while somebody pays up for crash protection is hedging, not enthusiasm: tighten, do not exit.`});}
+  else if(hed.length){lines.push({c:'hedge',h:`Every hedged rally on the board (${hed.map(x=>esc(x.r.t)).join(', ')}) sits inside an earnings window: event premium with a date on it, not a caution flag.`});}
+  const con=usable.filter(x=>quadOf(x.d,cy)==='CONTRA').sort((a,b)=>a.d.skew-b.d.skew);
+  if(con.length)lines.push({c:'contra',h:`Contrarian bids, the box this map exists for: ${con.map(x=>`<span class="tick">${esc(x.r.t)}</span>`).join(', ')}. Down on the month while somebody keeps paying for upside. Watchlist, then the chart, which answers the questions this layer cannot.`});
+  else lines.push({c:'quiet',h:'No contrarian bids today. A board with nothing interesting on it is a valid answer, and the cheapest sentence on this page.'});
+  const prev=latestSnap();
+  if(prev){let mv=null;for(const x of usable){const p=prevSkew(x.r.t);if(Number.isFinite(p)){const dd=x.d.skew-p;if(!mv||Math.abs(dd)>Math.abs(mv.d))mv={x,d:dd};}}
+   if(mv)lines.push({c:'',h:`Biggest one-week shift: <span class="tick">${esc(mv.x.r.t)}</span>, Δ ${sgn(mv.d,3)} vs the ${fmtDay(prev.date)} snapshot: ${mv.d>=0?'protection got more expensive':'the call side got bid'}. The level is structure; this column is the signal.`});}
+  else lines.push({c:'quiet',h:LIVE?'History starts with this run: the Δ column wakes up after the next pipeline update.':'No snapshot banked yet, so every Δ on this page is blank. Save one today; the change-based read only exists once last week does.'});
+ }
+ $('#readlines').innerHTML=lines.map(l=>`<div class="readline ${l.c}">${l.h}</div>`).join('');
+}
+function renderChips(){
+ const secs=[...new Set(state.rows.map(r=>r.sector).filter(Boolean))];
+ let h=`<button class="chip ${state.sectorFilter?'':'on'}" data-sec="">All sectors</button>`;
+ for(const s of secs)h+=`<button class="chip ${state.sectorFilter===s?'on':''}" data-sec="${esc(s)}">${esc(s)}</button>`;
+ $('#sectorChips').innerHTML=h;
+}
+function renderMap(){
+ const s=state.settings,list=all(),cy=crossY(list);
+ const yv=x=>s.yAxisRaw?x.d.pts:x.d.skew;
+ const plotted=list.filter(x=>!x.d.rejected&&Number.isFinite(x.d.ret)&&Number.isFinite(yv(x)));
+ const W=860,H=520,L=58,Rp=18,T=26,B=44;
+ let cyPlot=cy;
+ if(s.yAxisRaw){cyPlot=0;if(s.crosshair==='median'){const m=median(plotted.filter(x=>x.d.usable).map(x=>x.d.pts));if(Number.isFinite(m))cyPlot=m;}}
+ let xs=plotted.map(x=>x.d.ret).concat([0]),ys=plotted.map(yv).concat([cyPlot]);
+ if(!plotted.length){xs=[-10,10];ys=s.yAxisRaw?[-5,5]:[-0.2,0.2];}
+ let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+ const padx=(x1-x0)||1,pady=(y1-y0)||0.1;
+ x0-=padx*0.14;x1+=padx*0.14;y0-=pady*0.16;y1+=pady*0.16;
+ const px=v=>L+(v-x0)/(x1-x0)*(W-L-Rp);
+ const py=v=>T+(y1-v)/(y1-y0)*(H-T-B);
+ const cx=px(0),cyy=py(cyPlot);
+ const tint=(x,y,w,h,c)=>`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,0).toFixed(1)}" height="${Math.max(h,0).toFixed(1)}" style="fill:${c};opacity:.05"/>`;
+ let g='';
+ g+=tint(L,T,cx-L,cyy-T,'var(--q-fear)');
+ g+=tint(cx,T,W-Rp-cx,cyy-T,'var(--q-hedge)');
+ g+=tint(L,cyy,cx-L,H-B-cyy,'var(--q-contra)');
+ g+=tint(cx,cyy,W-Rp-cx,H-B-cyy,'var(--q-chase)');
+ let axes='';
+ for(let i=0;i<=5;i++){const v=x0+(x1-x0)*i/5,X=px(v);
+  axes+=`<line x1="${X.toFixed(1)}" y1="${T}" x2="${X.toFixed(1)}" y2="${H-B}" style="stroke:var(--line-soft);stroke-width:1"/><text x="${X.toFixed(1)}" y="${H-B+16}" text-anchor="middle" style="fill:var(--faint);font-family:var(--mono);font-size:10px">${v.toFixed(1)}</text>`;}
+ for(let i=0;i<=5;i++){const v=y0+(y1-y0)*i/5,Y=py(v);
+  axes+=`<line x1="${L}" y1="${Y.toFixed(1)}" x2="${W-Rp}" y2="${Y.toFixed(1)}" style="stroke:var(--line-soft);stroke-width:1"/><text x="${L-8}" y="${(Y+3).toFixed(1)}" text-anchor="end" style="fill:var(--faint);font-family:var(--mono);font-size:10px">${v.toFixed(s.yAxisRaw?1:2)}</text>`;}
+ const cross=`<line x1="${cx.toFixed(1)}" y1="${T}" x2="${cx.toFixed(1)}" y2="${H-B}" style="stroke:var(--line);stroke-width:1.4"/><line x1="${L}" y1="${cyy.toFixed(1)}" x2="${W-Rp}" y2="${cyy.toFixed(1)}" style="stroke:var(--line);stroke-width:1.4"/>`;
+ const lab=(x,y,txt,c,anchor)=>`<text x="${x}" y="${y}" text-anchor="${anchor}" style="fill:${c};opacity:.85;font-family:var(--mono);font-size:10.5px;letter-spacing:2px">${txt}</text>`;
+ let corners='';
+ corners+=lab(L+10,T+16,'FEAR','var(--q-fear)','start');
+ corners+=lab(W-Rp-10,T+16,'HEDGED RALLY','var(--q-hedge)','end');
+ corners+=lab(L+10,H-B-10,'CONTRARIAN BID','var(--q-contra)','start');
+ corners+=lab(W-Rp-10,H-B-10,'CHASE','var(--q-chase)','end');
+ const at=`<text x="${((L+W-Rp)/2).toFixed(0)}" y="${H-8}" text-anchor="middle" style="fill:var(--faint);font-family:var(--mono);font-size:10.5px;letter-spacing:2px">1M RETURN %</text><text x="14" y="${((T+H-B)/2).toFixed(0)}" text-anchor="middle" transform="rotate(-90 14 ${((T+H-B)/2).toFixed(0)})" style="fill:var(--faint);font-family:var(--mono);font-size:10.5px;letter-spacing:2px">${s.yAxisRaw?'PUT - CALL, VOL PTS':'SKEW = (PUT - CALL) / ATM'}</text>`;
+ const colors={CONTRA:'var(--q-contra)',CHASE:'var(--q-chase)',HEDGE:'var(--q-hedge)',FEAR:'var(--q-fear)'};
+ let dots='';
+ for(const x of plotted){
+  const X=px(x.d.ret),Y=py(yv(x));
+  const q=quadOf(x.d,cy);
+  const dimmed=state.sectorFilter&&x.r.sector!==state.sectorFilter;
+  const sel=state.selected===x.r.t&&x.r.t;
+  let body='';
+  if(x.d.thin){body=`<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="6" style="fill:none;stroke:var(--faint);stroke-width:1.6;stroke-dasharray:2.5 2.5"/>`;}
+  else{
+   const col=colors[q]||'var(--faint)';
+   let st=`fill:${col}`;
+   if(x.r.watch)st+=';stroke:var(--q-chase);stroke-width:2.6';
+   else if(sel)st+=';stroke:var(--text);stroke-width:1.8';
+   body=`<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${sel?7.5:6}" style="${st}"/>`;
+   if(sel&&x.r.watch)body+=`<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="10.5" style="fill:none;stroke:var(--text);stroke-width:1"/>`;
+  }
+  const tl=`<text x="${(X+10).toFixed(1)}" y="${(Y+3.5).toFixed(1)}" style="fill:${sel?'var(--text)':'var(--muted)'};font-family:var(--mono);font-size:10px">${esc(x.r.t)}</text>`;
+  const hit=`<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="13" style="fill:transparent;cursor:pointer" data-t="${esc(x.r.t)}"><title>${esc(sentence(list,x,cy))}</title></circle>`;
+  dots+=`<g opacity="${dimmed?0.15:1}">${body}${tl}${hit}</g>`;
+ }
+ let empty='';
+ if(!plotted.length)empty=`<text x="${W/2}" y="${H/2}" text-anchor="middle" style="fill:var(--faint);font-family:var(--mono);font-size:13px">Add names below to draw the map</text>`;
+ const svg=$('#mapSvg');
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+ svg.innerHTML=g+axes+cross+corners+at+dots+empty;
+}
+function renderDetail(){
+ const el=$('#detail');
+ const list=all(),cy=crossY(list);
+ const x=list.find(y=>y.r.t&&y.r.t===state.selected);
+ if(!x){el.classList.remove('on');el.innerHTML='';return;}
+ const {r,d}=x;const q=quadOf(d,cy);
+ const prev=prevSkew(r.t);const del=(Number.isFinite(prev)&&Number.isFinite(d.skew))?d.skew-prev:NaN;
+ const badges=[
+  r.watch?'<span class="mini-badge watch">watchlist</span>':'',
+  d.event?'<span class="mini-badge event">earnings inside window</span>':'',
+  d.thin?'<span class="mini-badge thin">thin chain</span>':'',
+  d.rejected?'<span class="mini-badge reject">rejected</span>':''
+ ].join(' ');
+ const chip=d.thin?'<span class="qchip NA">noise</span>':d.rejected?'<span class="qchip NA">rejected</span>':q?`<span class="qchip ${q}">${QUAD[q].name}</span>`:'<span class="qchip NA">incomplete</span>';
+ const map={CONTRA:'var(--q-contra)',CHASE:'var(--q-chase)',HEDGE:'var(--q-hedge)',FEAR:'var(--q-fear)'};
+ const border=q?map[q]:'var(--line)';
+ el.innerHTML=`<div class="top"><span class="tkr">${esc(r.t)}</span>${chip}${badges}<span class="spacer"></span><span class="mini-badge">${esc(r.sector||'no sector')}</span></div>
+ <div class="sentence" style="border-color:${border}">${esc(sentence(list,x,cy))}</div>
+ <div class="stats">
+  <span>skew <b>${sgn(d.skew,3)}</b></span><span>pts <b>${sgn(d.pts,1)}</b></span>
+  <span>Δ wk <b>${Number.isFinite(del)?sgn(del,3):'·'}</b></span>
+  <span>ATM <b>${fx(d.atm,1)}</b></span><span>RVOL <b>${fx(d.rvol,1)}x</b></span>
+  <span>earnings <b>${r.earn?esc(fmtDay(r.earn))+(Number.isFinite(d.dE)?` (${d.dE}d)`:''):'·'}</b></span>
+ </div>`;
+ el.classList.add('on');
+}
+function renderQuads(){
+ const cards=[
+  {k:'CONTRA',h:'🔵 Contrarian bid',l:'DOWN on the month · calls bid',t:'Price falls while somebody quietly pays up for upside. Tape and chain disagree, and that is the only time this layer teaches you something a chart could not.',a:'Default: <b>watchlist</b>, then the chart'},
+  {k:'CHASE',h:'🟠 Chase',l:'UP · calls bid',t:'Everyone agrees, upward, and people keep paying for more of it. Not wrong; just a worse entry than it was.',a:'Default: <b>late, not bad</b>. Do not feel clever.'},
+  {k:'HEDGE',h:'🟡 Hedged rally',l:'UP · puts bid',t:'Rising while protection gets bought underneath. Someone is insuring a winner they intend to keep; the rally is real, the trust in it is not.',a:'Default: <b>tighten stops</b> on anything held'},
+  {k:'FEAR',h:'🔴 Fear',l:'DOWN · puts bid',t:'Everyone agrees, downward, and the insurance keeps getting more expensive.',a:'Default: <b>leave it</b>. Not a bargain. Not yet.'}
+ ];
+ $('#quads').innerHTML=cards.map(c=>`<div class="quad ${c.k}"><h4>${c.h}</h4><div class="looks">${c.l}</div><div class="tells">${c.t}</div><div class="act">${c.a}</div></div>`).join('');
+}
+function renderShortlist(){
+ const list=all(),cy=crossY(list);
+ const pri={CONTRA:3,HEDGE:2,CHASE:1,FEAR:0};
+ let cand=list.filter(x=>x.d.usable&&x.r.t&&(!state.sectorFilter||x.r.sector===state.sectorFilter))
+  .map(x=>{const q=quadOf(x.d,cy);return {x,q,score:pri[q]*1000+Math.abs(x.d.skew)*100+((x.d.rvol>=state.settings.rvolHeavy)?6:0)};})
+  .sort((a,b)=>b.score-a.score).slice(0,6);
+ if(!cand.length){$('#shortlist').innerHTML='<div class="foot-rule">Nothing to rank yet.</div>';return;}
+ $('#shortlist').innerHTML=cand.map((c,i)=>{
+  const {x,q}=c,{r,d}=x;const prev=prevSkew(r.t);const del=Number.isFinite(prev)?d.skew-prev:NaN;
+  const side=d.skew>=0?'puts':'calls';
+  const line=`${magWord(d.skew)} ${side} bid${rankTxt(list,x)} · ${d.ret>=0?'up':'down'} ${Math.abs(d.ret).toFixed(1)}% (${sgn(d.vs,1)}% vs SPY) · RVOL ${fx(d.rvol,1)}x`;
+  const bg=[r.watch?'<span class="mini-badge watch">watch</span>':'',d.event?'<span class="mini-badge event">event</span>':''].join(' ');
+  return `<div class="srow" data-t="${esc(r.t)}"><span class="rank">${i+1}</span><span class="tkr">${esc(r.t)}</span><span class="verdict ${q}">${QUAD[q].verdict}</span><span class="line">${line}</span>${bg}<span class="delta">Δ ${Number.isFinite(del)?sgn(del,3):'·'}</span></div>`;
+ }).join('');
+}
+function renderSectors(){
+ const list=all();const {rows,small}=sectorStats(list);
+ const el=$('#sectors');
+ if(!rows.length)el.innerHTML=`<div class="foot-rule">No sector clears the minimum of ${state.settings.minSector} usable names yet.</div>`;
+ else{
+  const max=Math.max(...rows.map(r=>Math.abs(r.avg)),0.5);
+  el.innerHTML=rows.map(r=>{
+   const w=(Math.min(Math.abs(r.avg)/max,1)*48).toFixed(1);
+   const bar=r.avg>=0?`<div class="bar put" style="left:50%;width:${w}%"></div>`:`<div class="bar call" style="right:50%;width:${w}%"></div>`;
+   const cav=r.agree<state.settings.agreeMin?` <span class="caveat">· mixed, not a sector move</span>`:'';
+   return `<div class="secrow"><div class="name">${esc(r.sector)}</div><div class="barlane"><div class="mid"></div>${bar}</div><div class="agree">${sgn(r.avg,1)} pts · ${r.agree}% agree · n=${r.n}${cav}</div></div>`;
+  }).join('');
+ }
+ const parts=[];
+ if(small.length)parts.push(`Too small to read (under ${state.settings.minSector} usable): ${small.map(s=>`${esc(s.sector)} (${s.n})`).join(', ')}.`);
+ parts.push('Right of the line = puts pricier (fear premium) · left = calls pricier (upside bid).');
+ $('#secNote').innerHTML=parts.join(' ');
+}
+function renderHonest(){
+ const list=all();
+ const rej=list.filter(x=>x.d.rejected&&!x.d.thin);
+ const thin=list.filter(x=>x.d.thin&&x.r.t);
+ let h='';
+ for(const x of rej)h+=`<div class="row reject"><span class="t">${esc(x.r.t)}</span> rejected: skew ${sgn(x.d.skew,3)} is past the ${state.settings.sanityCeiling.toFixed(2)} ceiling. One bad mark on one leg can invert an entire name and quietly drag the whole board; re-pull the chain before believing this.</div>`;
+ for(const x of thin)h+=`<div class="row thin"><span class="t">${esc(x.r.t)}</span> thin chain: plotted hollow, excluded from sector math and the shortlist. Whatever it prints is noise, however dramatic.${x.r.note?` Pipeline: ${esc(x.r.note)}.`:''}</div>`;
+ for(const f of (LIVEMETA.failures||[]))h+=`<div class="row reject"><span class="t">${esc(f.t)}</span> not covered by the pipeline: ${esc(f.reason||'fetch failed')}.</div>`;
+ for(const w of (LIVEMETA.warnings||[]))h+=`<div class="row thin"><span class="t">${esc(w.t)}</span> diff guard: ${esc(w.reason||'outsized one-session move')}</div>`;
+ if(!h)h='<div class="none">Nothing rejected, nothing thin. Every number on the board cleared its checks today.</div>';
+ $('#honest').innerHTML=h;
+}
+function rowHTML(x,list,cy){
+ const {r,d}=x;const q=quadOf(d,cy);
+ const prev=prevSkew(r.t);const del=(Number.isFinite(prev)&&Number.isFinite(d.skew))?d.skew-prev:NaN;
+ const dim=state.sectorFilter&&r.sector!==state.sectorFilter?' dim':'';
+ const sel=(state.selected&&state.selected===r.t)?' sel':'';
+ const chip=d.thin?'<span class="mini-badge thin">thin</span>':d.rejected?'<span class="mini-badge reject">rejected</span>':q?`<span class="qchip ${q}">${QUAD[q].name.split(' ')[0].toLowerCase()}</span>`:'<span class="qchip NA">·</span>';
+ const ev=d.event?' <span class="mini-badge event">ev</span>':'';
+ const iv=v=>{const n=num(v);return Number.isFinite(n)?n:'';};
+ if(LIVE){
+  const cell=v=>{const n=num(v);return Number.isFinite(n)?String(n):'\u00b7';};
+  return `<tr data-id="${r.id}" data-t="${esc(r.t)}" class="${(dim+sel).trim()}" style="cursor:pointer">
+ <td><span class="starbtn${r.watch?' on':''}" style="cursor:inherit">${r.watch?'\u2605':'\u2606'}</span></td>
+ <td class="comp" style="font-weight:700">${esc(r.t)}</td>
+ <td class="comp mut">${esc(r.sector)}</td>
+ <td class="num comp mut">${cell(r.atm)}</td>
+ <td class="num comp mut">${cell(r.put)}</td>
+ <td class="num comp mut">${cell(r.call)}</td>
+ <td class="num comp c-skew ${cls(d.skew)}">${sgn(d.skew,3)}</td>
+ <td class="num comp c-pts ${cls(d.pts)}">${sgn(d.pts,1)}</td>
+ <td class="num comp mut">${cell(r.ret)}</td>
+ <td class="num comp c-vs mut">${sgn(d.vs,1)}</td>
+ <td class="num comp mut">${cell(r.rvol)}</td>
+ <td class="comp mut">${r.earn?esc(fmtDay(r.earn)):'\u00b7'}</td>
+ <td style="text-align:center" class="comp mut" title="${r.chain?'chain ok':'thin chain'}">${r.chain?'\u2713':'\u2717'}</td>
+ <td class="num comp c-dk mut">${Number.isFinite(del)?sgn(del,3):'\u00b7'}</td>
+ <td class="c-quad">${chip}${ev}</td>
+ <td></td>
+</tr>`;
+ }
+ return `<tr data-id="${r.id}" class="${(dim+sel).trim()}">
+ <td><button class="starbtn${r.watch?' on':''}" data-a="star" title="Watchlist">${r.watch?'★':'☆'}</button></td>
+ <td><input class="tkr-in" type="text" data-f="t" value="${esc(r.t)}" placeholder="TKR"></td>
+ <td><input class="sec-in" type="text" data-f="sector" value="${esc(r.sector)}" placeholder="Sector"></td>
+ <td class="num"><input type="number" step="0.1" data-f="atm" value="${iv(r.atm)}"></td>
+ <td class="num"><input type="number" step="0.1" data-f="put" value="${iv(r.put)}"></td>
+ <td class="num"><input type="number" step="0.1" data-f="call" value="${iv(r.call)}"></td>
+ <td class="num comp c-skew ${cls(d.skew)}">${sgn(d.skew,3)}</td>
+ <td class="num comp c-pts ${cls(d.pts)}">${sgn(d.pts,1)}</td>
+ <td class="num"><input type="number" step="0.1" data-f="ret" value="${iv(r.ret)}"></td>
+ <td class="num comp c-vs mut">${sgn(d.vs,1)}</td>
+ <td class="num"><input type="number" step="0.1" data-f="rvol" value="${iv(r.rvol)}"></td>
+ <td><input type="date" data-f="earn" value="${esc(r.earn)}"></td>
+ <td style="text-align:center"><input type="checkbox" data-f="chain" ${r.chain?'checked':''} title="Chain deep enough to trust"></td>
+ <td class="num comp c-dk mut">${Number.isFinite(del)?sgn(del,3):'·'}</td>
+ <td class="c-quad">${chip}${ev}</td>
+ <td><button class="delbtn" data-a="del" title="Remove this row">✕</button></td>
+</tr>`;
+}
+function renderTable(){
+ const list=all(),cy=crossY(list);
+ $('#tbody').innerHTML=list.map(x=>rowHTML(x,list,cy)).join('');
+ $('#spyIn').value=Number.isFinite(state.spy1m)?state.spy1m:'';
+}
+function patchRow(tr,x){
+ const cy=crossY(all());
+ const {r,d}=x;const q=quadOf(d,cy);
+ const prev=prevSkew(r.t);const del=(Number.isFinite(prev)&&Number.isFinite(d.skew))?d.skew-prev:NaN;
+ const set=(sel2,txt,k)=>{const c=tr.querySelector(sel2);if(!c)return;c.textContent=txt;c.classList.remove('pos','neg','mut');c.classList.add(k);};
+ set('.c-skew',sgn(d.skew,3),cls(d.skew));
+ set('.c-pts',sgn(d.pts,1),cls(d.pts));
+ set('.c-vs',sgn(d.vs,1),'mut');
+ set('.c-dk',Number.isFinite(del)?sgn(del,3):'·','mut');
+ const qc=tr.querySelector('.c-quad');
+ if(qc){const chip=d.thin?'<span class="mini-badge thin">thin</span>':d.rejected?'<span class="mini-badge reject">rejected</span>':q?`<span class="qchip ${q}">${QUAD[q].name.split(' ')[0].toLowerCase()}</span>`:'<span class="qchip NA">·</span>';
+  qc.innerHTML=chip+(d.event?' <span class="mini-badge event">ev</span>':'');}
+}
+function renderSettings(){
+ const s=state.settings;
+ $('#setGrid').innerHTML=`
+ <div class="set"><div class="n">Decision 1</div><h5>Which two strikes</h5>
+  <p>Equally unlikely, opposite directions. Pick a delta and hold it forever; fixed-percent moneyness would rank volatility, not sentiment.</p>
+  <div class="ctrl">${LIVE?`<span class="locked">${s.deltaLevel}Δ, mirrored either side · the pipeline already picked these legs, so changing it here would only relabel them</span>`:`<input type="number" step="1" min="5" max="45" data-s="deltaLevel" value="${s.deltaLevel}"> <span class="locked">Δ, mirrored either side</span>`}</div></div>
+ <div class="set"><div class="n">Decision 2</div><h5>Which expiry</h5>
+  <p>One rule that picks the same kind of expiry for every name, every run. Let it drift and you are measuring the calendar, not the crowd.</p>
+  <div class="ctrl">${LIVE?`<span class="locked">${esc(s.expiryRule)} · set by the build that fed this board</span>`:`<input type="text" data-s="expiryRule" value="${esc(s.expiryRule)}">`}</div></div>
+ <div class="set"><div class="n">Decision 3</div><h5>Normalize, or not</h5>
+  <p>Both get used, each where it belongs. The map and rankings divide by ATM IV so a utility compares to a semi. Sector bars stay in raw vol points, always: dividing by a small ATM manufactures fake fear in quiet sectors.</p>
+  <div class="ctrl"><span class="locked">Bolted down on purpose. The raw-points map toggle exists for inspection only.</span></div></div>
+ <div class="set"><div class="n">Decision 4</div><h5>Universe and benchmark</h5>
+  <p>Rank your own picks against your own picks and every sector inherits your bias back as a signal.</p>
+  <div class="ctrl" style="margin-bottom:8px">${LIVE?`<span class="locked">Sectors are averaged over the names in this board only, benchmarked against ${esc(LIVEMETA.benchmark||'SPY')}. A neutral universe (sector ETF holdings) is the open item; until then a sector read carries this list's bias.</span>`:`<input type="text" data-s="universeNote" value="${esc(s.universeNote)}">`}</div>
+  <div class="ctrl"><span class="locked">Min usable names before a sector read counts</span> <input type="number" step="1" min="2" data-s="minSector" value="${s.minSector}"></div></div>
+ <div class="set"><div class="n">Decision 5</div><h5>Quality bar</h5>
+  <p>Some chains are too sparse to believe. Here they plot hollow, get named in the honesty strip, and are excluded from sector math and the shortlist: shown, labeled, never acted on.</p>
+  <div class="ctrl">${LIVE?qualityBarText():'<span class="locked">Toggle per name in the Chain column of the sheet</span>'}</div></div>
+ <div class="set"><div class="n">Decision 6</div><h5>Sanity ceiling</h5>
+  <p>Above this, stop believing your own number and assume a bad mark on one leg. Set it by what is plausible for the kind of stock, never by drawing a line under today's ugliest point.</p>
+  <div class="ctrl"><span class="locked">Reject when |skew| exceeds</span> <input type="number" step="0.05" min="0.2" data-s="sanityCeiling" value="${s.sanityCeiling}"></div></div>
+ <div class="set"><div class="n">Decision 7</div><h5>What you store</h5>
+  <p>Every change-based read needs history you do not have on day one. ${LIVE?'The pipeline banks a snapshot every session, so this fills itself in.':"Snapshots live in this page's own storage; export CSV whenever you want a copy outside it."}</p>
+  <div class="ctrl"><span class="locked">${state.snapshots.length} snapshot(s) banked · Δ compares to the most recent</span></div></div>
+ <div class="set"><div class="n">The small dials</div><h5>Thresholds, set once, in advance</h5>
+  <p>The discipline is not where these sit. It is that they never move because a story you like is just under one of them.</p>
+  <div class="ctrl"><span class="locked">Sector agreement %</span><input type="number" step="5" min="50" max="100" data-s="agreeMin" value="${s.agreeMin}"><span class="locked">Event window, days</span><input type="number" step="1" min="0" data-s="eventWindow" value="${s.eventWindow}"></div>
+  <div class="ctrl" style="margin-top:8px"><span class="locked">RVOL heavy at</span><input type="number" step="0.1" data-s="rvolHeavy" value="${s.rvolHeavy}"><span class="locked">light at</span><input type="number" step="0.1" data-s="rvolLight" value="${s.rvolLight}"></div>
+  <div class="ctrl" style="margin-top:8px"><span class="locked">"clearly" from</span><input type="number" step="0.01" data-s="slightCut" value="${s.slightCut}"><span class="locked">"heavily" from</span><input type="number" step="0.01" data-s="heavyCut" value="${s.heavyCut}"></div></div>`;
+}
+function qualityBarText(){
+ // State the bar the build actually applied, from the thresholds it mirrored
+ // into latest.json. Nothing here is editable: a chain either cleared these
+ // when it was fetched or it did not, and no client-side dial changes that.
+ const q=LIVEMETA.quality||{};
+ const bits=[];
+ if(Number.isFinite(+q.min_strikes_per_side))bits.push(`${+q.min_strikes_per_side}+ usable strikes a side`);
+ if(q.require_bid!==false)bits.push('a bid on the leg');
+ if(Number.isFinite(+q.max_leg_spread_pct))bits.push(`spread within ${Math.round(+q.max_leg_spread_pct*100)}% of the mid`);
+ if(Number.isFinite(+q.max_delta_gap))bits.push(`leg delta within ${(+q.max_delta_gap).toFixed(2)} of target`);
+ if(Number.isFinite(+q.min_leg_open_interest))bits.push(`${+q.min_leg_open_interest}+ open interest`);
+ const iv=q.iv_from_mid!==false
+  ? 'Every IV is re-derived from the bid/ask mid, not taken from the feed, so a stale last trade cannot set a leg.'
+  : "IV is taken from the data feed's own field.";
+ return `<span class="locked">Applied by the pipeline, not here: ${bits.join(' · ')}. ${iv} A leg failing the quote tests is skipped and the next strike tried; a name that runs out is flagged thin above.</span>`;
+}
+function renderSnaps(){
+ const el=$('#snaps');
+ const note=v=>`<div style="font-family:var(--mono);font-size:12.5px;color:var(--faint)">${v}</div>`;
+ if(!state.snapshots.length){el.innerHTML=note(LIVE?'None yet. The Δ column wakes up after the pipeline banks a second session.':'None yet. Save one and the Δ column wakes up.');return;}
+ // Pipeline snapshots are not the reader's to delete; they come back on reload.
+ el.innerHTML=state.snapshots.map((s,i)=>`<div class="snap"><b>${esc(fmtDay(s.date))}</b><span>${(s.data||[]).length} names</span>${s.note?`<span>· ${esc(s.note)}</span>`:''}${i===0?'<span style="color:var(--q-hedge)">· feeds Δ</span>':''}${LIVE?'':`<button class="delbtn x" data-snap="${i}" title="Delete this snapshot">✕</button>`}</div>`).join('')
+  +(LIVE?note(historySource==='api/history'?'Read from the database: every session ever built.':'Read from data/history.json, trimmed to the retention window.'):'');
+}
+function renderDerived(){renderBadges();renderMeta();renderStrip();renderRead();renderChips();renderMap();renderDetail();renderShortlist();renderSectors();renderHonest();renderSnaps();}
+function renderAll(){renderTable();renderDerived();}
+let dT=null;const scheduleDerived=()=>{clearTimeout(dT);dT=setTimeout(renderDerived,450);};
+
+/* ---------------- actions ---------------- */
+function saveSnapshot(){
+ const list=all();
+ const data=list.filter(x=>Number.isFinite(x.d.skew)&&x.r.t).map(x=>({t:x.r.t,s:+x.d.skew.toFixed(4),p:+x.d.pts.toFixed(2)}));
+ if(!data.length){toast('Nothing to snapshot yet: fill some rows first.');return;}
+ const d=todayISO();
+ if(state.snapshots[0]&&state.snapshots[0].date===d){
+  state.snapshots[0]={date:d,note:'',data};
+  toast("Updated today's snapshot ("+data.length+" names).");
+ }else{
+  state.snapshots.unshift({date:d,note:'',data});
+  toast('Snapshot saved: '+fmtDay(d)+' · '+data.length+' names. The Δ column now has something to push against.');
+ }
+ state.snapshots.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ markDirty();renderSettings();renderAll();
+}
+function exportCSV(){
+ const list=all(),cy=crossY(list);
+ const q=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+ const head=['Ticker','Sector','ATM_IV','Put_IV','Call_IV','Skew','Vol_Pts','Ret_1M','Vs_SPY','RVOL','Earnings','Chain_OK','Watchlist','Verdict','Delta_vs_last_snapshot'];
+ const lines=[head.join(',')];
+ for(const x of list){
+  const {r,d}=x;if(!r.t)continue;
+  const qd=quadOf(d,cy);const prev=prevSkew(r.t);
+  const del=(Number.isFinite(prev)&&Number.isFinite(d.skew))?(d.skew-prev).toFixed(4):'';
+  lines.push([r.t,r.sector,fxE(d.atm),fxE(d.put),fxE(d.call),Number.isFinite(d.skew)?d.skew.toFixed(4):'',Number.isFinite(d.pts)?d.pts.toFixed(2):'',fxE(d.ret),Number.isFinite(d.vs)?d.vs.toFixed(2):'',fxE(d.rvol),r.earn,r.chain?'Y':'N',r.watch?'Y':'N',d.thin?'THIN':d.rejected?'REJECTED':qd?QUAD[qd].name:'',del].map(q).join(','));
+ }
+ if(state.snapshots.length){
+  lines.push('');lines.push('SNAPSHOT_HISTORY');lines.push('Date,Ticker,Skew,Vol_Pts');
+  for(const s of state.snapshots)for(const it of (s.data||[]))lines.push([s.date,it.t,it.s,it.p].map(q).join(','));
+ }
+ const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='skew-map-'+todayISO()+'.csv';
+ document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400);
+ toast('CSV exported: the current board plus snapshot history.');
+}
+function doImport(){
+ const txt=$('#importText').value.trim();
+ if(!txt){toast('Paste at least one line first.');return;}
+ const rows=[];
+ for(const raw of txt.split(/\r?\n/)){
+  const line=raw.trim();if(!line)continue;
+  const f=line.split(/\t|,/).map(v=>v.trim());
+  if(/^ticker$/i.test(f[0]||''))continue;
+  if(!f[0])continue;
+  const yn=v=>/^y/i.test(v||'');
+  rows.push(R(f[0].toUpperCase(),f[1]||'',f[2]??'',f[3]??'',f[4]??'',f[5]??'',f[6]??'',/^\d{4}-\d{2}-\d{2}$/.test(f[7]||'')?f[7]:'',f[8]===undefined?true:yn(f[8]),yn(f[9])));
+ }
+ if(!rows.length){toast('Could not parse any rows; check the column order.');return;}
+ state.rows=rows;state.sampleMode=false;state.selected=null;state.sectorFilter=null;
+ $('#importOverlay').classList.remove('on');$('#importText').value='';
+ markDirty();renderSettings();renderAll();
+ toast(rows.length+' names loaded. Snapshots kept; Δ matches by ticker.');
+}
+
+/* ---------------- wiring ---------------- */
+function pick(t){state.selected=t;renderAll();const d=$('#detail');if(d&&typeof d.scrollIntoView==='function')d.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function wire(){
+ $('#sectorChips').addEventListener('click',e=>{const b=e.target.closest('[data-sec]');if(!b)return;const v=b.getAttribute('data-sec');state.sectorFilter=v||null;renderAll();});
+ $('#mapSvg').addEventListener('click',e=>{const c=e.target.closest('[data-t]');if(!c)return;pick(c.getAttribute('data-t'));});
+ $('#shortlist').addEventListener('click',e=>{const rw=e.target.closest('.srow');if(rw)pick(rw.getAttribute('data-t'));});
+ $('#ctlMedian').addEventListener('change',e=>{state.settings.crosshair=e.target.checked?'median':'zero';markDirty();renderAll();});
+ $('#ctlRaw').addEventListener('change',e=>{state.settings.yAxisRaw=e.target.checked;markDirty();renderMap();renderMeta();});
+ const tb=$('#tbody');
+ tb.addEventListener('input',e=>{
+  const inp=e.target.closest('input');if(!inp||inp.type==='checkbox')return;
+  const tr=e.target.closest('tr');const row=state.rows.find(r=>r.id===tr.dataset.id);if(!row)return;
+  const f=inp.dataset.f;if(!f)return;
+  if(f==='t'){row.t=inp.value.toUpperCase();inp.value=row.t;}
+  else row[f]=inp.value;
+  patchRow(tr,{r:row,d:derive(row)});markDirty();scheduleDerived();
+ });
+ tb.addEventListener('change',e=>{
+  const inp=e.target.closest('input');if(!inp)return;
+  const tr=inp.closest('tr');const row=state.rows.find(r=>r.id===tr.dataset.id);if(!row)return;
+  if(inp.type==='checkbox'&&inp.dataset.f==='chain'){row.chain=inp.checked;markDirty();renderAll();return;}
+  if(inp.type==='date'){row.earn=inp.value;patchRow(tr,{r:row,d:derive(row)});markDirty();scheduleDerived();}
+ });
+ tb.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b){if(LIVE){const tr=e.target.closest('tr[data-t]');if(tr)pick(tr.getAttribute('data-t'));}return;}
+  const tr=b.closest('tr');const idx=state.rows.findIndex(r=>r.id===tr.dataset.id);if(idx<0)return;
+  if(b.dataset.a==='star'){state.rows[idx].watch=!state.rows[idx].watch;markDirty();renderAll();}
+  if(b.dataset.a==='del'){const t=state.rows[idx].t;state.rows.splice(idx,1);if(state.selected===t)state.selected=null;markDirty();renderAll();toast((t||'Row')+' removed');}
+ });
+ $('#spyIn').addEventListener('input',e=>{
+  state.spy1m=num(e.target.value);markDirty();
+  $$('#tbody tr').forEach(tr=>{const row=state.rows.find(r=>r.id===tr.dataset.id);if(row)patchRow(tr,{r:row,d:derive(row)});});
+  scheduleDerived();
+ });
+ $('#btnAdd').addEventListener('click',()=>{addBlank();markDirty();renderAll();const last=$('#tbody tr:last-child .tkr-in');if(last)last.focus();});
+ $('#setGrid').addEventListener('change',e=>{
+  const inp=e.target.closest('[data-s]');if(!inp)return;const k=inp.dataset.s;
+  if(inp.type==='number'){const v=num(inp.value);if(Number.isFinite(v))state.settings[k]=v;}
+  else state.settings[k]=inp.value;
+  markDirty();renderTable();renderDerived();
+ });
+ $('#btnSnap').addEventListener('click',saveSnapshot);
+ $('#snaps').addEventListener('click',e=>{
+  const b=e.target.closest('[data-snap]');if(!b)return;
+  const i=+b.dataset.snap;const s=state.snapshots[i];if(!s)return;
+  state.snapshots.splice(i,1);markDirty();renderSettings();renderAll();toast('Snapshot '+fmtDay(s.date)+' deleted');
+ });
+ $('#btnExport').addEventListener('click',exportCSV);
+ $('#btnImport').addEventListener('click',()=>{$('#importOverlay').classList.add('on');$('#importText').focus();});
+ $('#importCancel').addEventListener('click',()=>$('#importOverlay').classList.remove('on'));
+ $('#importOverlay').addEventListener('click',e=>{if(e.target.id==='importOverlay')$('#importOverlay').classList.remove('on');});
+ $('#importGo').addEventListener('click',doImport);
+ let armed=false,armT=null;
+ $('#btnReset').addEventListener('click',e=>{
+  if(!armed){armed=true;e.target.textContent='Tap again to confirm reset';clearTimeout(armT);armT=setTimeout(()=>{armed=false;e.target.textContent='Reset everything';},3200);return;}
+  armed=false;e.target.textContent='Reset everything';
+  (async()=>{try{if(storageOK)await window.storage.delete(KEY);}catch(err){}})();
+  seedSample();renderSettings();renderAll();markDirty();toast('Reset. Sample board restored.');
+ });
+}
+
+/* ---------------- boot ---------------- */
+/* ------------- live mode: fed by the skewmap pipeline ------------- */
+async function loadLive(){
+ if(typeof fetch!=='function')return null;
+ try{
+  // Take whichever board is newer. Intraday builds write only to the database,
+  // so during the session the endpoint leads and the committed JSON is the last
+  // settled close. Falling back to that file costs freshness, never the board.
+  let latest=null;
+  const stamp=j=>{const t=(j&&j.as_of)?Date.parse(j.as_of):NaN;return Number.isFinite(t)?t:-1;};
+  for(const url of ['api/latest','data/latest.json']){
+   try{
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r||!r.ok)continue;
+    const j=await r.json();
+    if(j&&Array.isArray(j.rows)&&stamp(j)>stamp(latest)){latest=j;latestSource=url;}
+   }catch(e){}
+  }
+  if(!latest)return null;
+  // Take whichever source carries more sessions. The database keeps every
+  // session ever built; the committed JSON is trimmed to history_keep_days and
+  // is what file://, a cold database and any API outage fall back to. Picking
+  // the deeper of the two means wiring up a database can never lose history,
+  // even while it is still filling up.
+  let history=null;
+  const depth=j=>(j&&Array.isArray(j._dates))?j._dates.length:-1;
+  for(const url of ['api/history','data/history.json']){
+   try{
+    const h=await fetch(url,{cache:'no-store'});
+    if(!h||!h.ok)continue;
+    const j=await h.json();
+    if(depth(j)>depth(history)){history=j;historySource=url;}
+   }catch(e){}
+  }
+  return {latest,history};
+ }catch(e){return null;}
+}
+function applyLive(L){
+ LIVE=true;document.body.classList.add('live');
+ const j=L.latest;uid=0;
+ LIVEMETA={asOf:j.as_of||'',provider:j.provider||'',session:j.session_date||'',failures:j.failures||[],warnings:j.warnings||[],
+           quality:(j.decisions&&j.decisions.quality)||{},benchmark:(j.decisions&&j.decisions.benchmark)||'SPY'};
+ if(j.decisions){
+  const d=j.decisions,s=state.settings;
+  if(Number.isFinite(+d.delta_level))s.deltaLevel=+d.delta_level;
+  if(Number.isFinite(+d.sanity_ceiling))s.sanityCeiling=+d.sanity_ceiling;
+  if(Number.isFinite(+d.min_sector_names))s.minSector=+d.min_sector_names;
+  if(Number.isFinite(+d.agreement_min_pct))s.agreeMin=+d.agreement_min_pct;
+  if(Number.isFinite(+d.event_window_days))s.eventWindow=+d.event_window_days;
+ }
+ if(j.expiry_rule)state.settings.expiryRule=String(j.expiry_rule);
+ state.sampleMode=false;
+ state.spy1m=Number.isFinite(+j.spy_1m)?+j.spy_1m:NaN;
+ state.rows=(j.rows||[]).map(r=>({id:nid(),t:String(r.t||'').toUpperCase(),sector:r.sector||'',atm:r.atm,put:r.put,call:r.call,ret:r.ret,rvol:r.rvol,earn:r.earn||'',chain:r.chain!==false,watch:!!r.watch,rvolPartial:!!r.rvol_partial,note:(r.meta&&Array.isArray(r.meta.quality_notes))?r.meta.quality_notes.join('; '):''}));
+ state.snapshots=[];
+ const H=L.history;
+ if(H&&Array.isArray(H._dates)){
+  const dates=[...H._dates].sort().reverse();
+  for(const dt of dates){
+   if(dt===LIVEMETA.session)continue;
+   const data=[];
+   for(const [t,arr] of Object.entries(H)){
+    if(t==='_dates'||!Array.isArray(arr))continue;
+    const e=arr.find(x=>x&&x.date===dt);
+    if(e)data.push({t,s:+e.skew,p:+e.pts});
+   }
+   if(data.length)state.snapshots.push({date:dt,note:'pipeline',data});
+  }
+ }
+}
+let pollT=null;
+function startPoll(){
+ clearTimeout(pollT);
+ pollT=setTimeout(async()=>{
+  const L=await loadLive();
+  if(L&&L.latest&&L.latest.as_of!==LIVEMETA.asOf){
+   const sel=state.selected,sf=state.sectorFilter;
+   applyLive(L);state.selected=sel;state.sectorFilter=sf;
+   renderSettings();renderAll();toast('Board refreshed: '+fmtStamp(LIVEMETA.asOf));
+  }
+  startPoll();
+ },5*60*1000);
+}
+(async function boot(){
+ const L=await loadLive();
+ if(L){applyLive(L);startPoll();}
+ else{
+  let saved=null;
+  try{saved=await loadState();}catch(e){saved=null;}
+  if(saved&&Array.isArray(saved.rows))hydrate(saved);
+  else seedSample();
+ }
+ $('#boot').classList.add('hidden');
+ $('#app').classList.remove('hidden');
+ renderQuads();renderSettings();renderAll();wire();
+})();
+</script>
+</body>
+</html>
