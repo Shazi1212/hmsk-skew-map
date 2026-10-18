@@ -81,12 +81,6 @@ without Docker available and has not been run yet.
 
     docker compose up -d     # then open http://localhost:8080
 
-[![Deploy to Hostinger](https://assets.hostinger.com/vps/deploy.svg)](https://www.hostinger.com/docker-hosting?compose_url=RAW_COMPOSE_URL&REFERRALCODE=REFERRAL_CODE)
-
-<!-- TODO: replace RAW_COMPOSE_URL with the raw URL of docker-compose.yml once
-the repo is public, set SKEWMAP_REPO to the repo's git URL in the Hostinger
-environment, and fill in REFERRAL_CODE. -->
-
 ## Data sources and licensing
 
 * `yfinance` (default): free, no key, delayed, unofficial Yahoo endpoints.
